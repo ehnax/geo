@@ -1,0 +1,58 @@
+# geosite:private, hand-written. Local names and router admin hosts only.
+#
+# One rule per line, # for a comment:
+#
+#   domain:name   name and everything under it
+#   full:name     that one name
+#   regexp:...    pattern over the whole name
+#   bare word     a keyword, Xray's substring match; no `keyword:` prefix exists
+#
+# Order of the rules does not matter: Xray ORs them into one matcher. The build
+# sorts them by type only to keep diffs readable. This file is the source of
+# truth, a release never overwrites it, and the build emits it as written.
+
+# Single-label names: openwrt, ubnt, printer, nas, myrouter. Nothing above can
+# match these, so this rule is what makes the rest work.
+regexp:^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
+
+# Reserved names, RFC 6761 and RFC 8375. What DHCP hands out.
+domain:localhost
+domain:home.arpa
+domain:lan
+domain:local
+domain:localdomain
+# domain:local already covers printer.local, nas.local and anything else mDNS.
+
+# Admin interfaces: reached by name on a fresh install, when the router is
+# hardest to fix.
+full:router.asus.com
+full:tplogin.net
+full:tplogin.cn
+full:miwifi.com
+full:tendawifi.com
+full:routerlogin.net
+full:dlink.ru
+full:netgear.com
+full:ubnt.com
+full:unifi.com
+full:router.keenetic.net
+full:my.keenetic.net
+full:myrouter
+full:router
+full:admin.router
+
+# OpenWrt itself: update hosts, LuCI.
+domain:openwrt.org
+domain:openwrt.com
+domain:luci.app
+full:downloads.openwrt.org
+full:feed.openwrt.org
+
+# The six lines below are keywords (bare words, no prefix). A device answers to
+# the name it reports, which is the model string. Widest rules in the file.
+openwrt
+luci
+asuswrt
+padavan
+tomato
+ddwrt

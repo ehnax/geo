@@ -1,0 +1,21 @@
+# geoip:PRIVATE, hand-written. RFC 1918, loopback, link-local and the rest of
+# what a home network hands out. Nothing exotic.
+#
+# One CIDR per line, # for a comment. This file is the source of truth, a release
+# never overwrites it, and the build reduces whatever is here.
+
+# RFC 1122 "this network", also the unspecified address.
+0.0.0.0/8
+# RFC 1918
+10.0.0.0/8
+172.16.0.0/12
+192.168.0.0/16
+# RFC 6598 CGNAT: carriers hand out addresses from it.
+100.64.0.0/10
+# Loopback: without it the router's own replies leave via the proxy.
+127.0.0.0/8
+# RFC 3927 link-local
+169.254.0.0/16
+# Multicast, then RFC 1112 reserved. Adjacent, so the reducer merges both.
+224.0.0.0/4
+240.0.0.0/4
