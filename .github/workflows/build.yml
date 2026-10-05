@@ -1,0 +1,108 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  # Weekly: a monthly CSV lands on the 1st, so daily rebuilds add nothing.
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  GO_VERSION: "1.22"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: gofmt
+        run: test -z "$(gofmt -l .)"
+
+      - name: vet
+        run: go vet ./...
+
+      - name: build geoip
+        run: go run ./geoip/scripts -out geoip/output
+
+      - name: build geosite
+        run: go run ./geosite/scripts -out geosite/output
+
+      - name: show what was produced
+        run: |
+          ls -l geoip/output geosite/output
+          cat geoip/output/*.sha256sum geosite/output/*.sha256sum
+
+      # Our own build writes the .sha256sum files, and it records a bare file
+      # name, so the check has to run from the directory holding the .dat.
+      - name: verify the artifacts
+        run: |
+          set -euo pipefail
+          (cd geoip/output   && sha256sum -c geoip.dat.sha256sum)
+          (cd geosite/output && sha256sum -c geosite.dat.sha256sum)
+
+      # Only the .dat files and their sums are released. The .txt lists stay in
+      # the repo and in output/ as build evidence; nothing reads them downstream.
+      - name: stage release assets
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cp geoip/output/geoip.dat geoip/output/geoip.dat.sha256sum dist/
+          cp geosite/output/geosite.dat geosite/output/geosite.dat.sha256sum dist/
+          ls -l dist
+
+      - name: publish the latest release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: latest
+          prerelease: false
+          overwrite_files: true
+          files: |
+            dist/geoip.dat
+            dist/geoip.dat.sha256sum
+            dist/geosite.dat
+            dist/geosite.dat.sha256sum
+
+      # overwrite_files replaces an asset of the same name and leaves every other
+      # one alone, so an asset dropped from files: above would survive forever.
+      # This leaves the release holding exactly the four files in dist.
+      - name: drop any other asset
+        run: |
+          set -euo pipefail
+          keep="geoip.dat geoip.dat.sha256sum geosite.dat geosite.dat.sha256sum"
+          gh release view latest --json assets --jq '.assets[].name' | while read -r name; do
+            case " $keep " in
+              *" $name "*) ;;
+              *) echo "deleting $name"; gh release delete-asset latest "$name" ;;
+            esac
+          done
+
+      # Confirms what a consumer actually downloads matches what was built.
+      - name: verify the published release
+        run: |
+          set -euo pipefail
+          base="https://github.com/${{ github.repository }}/releases/download/latest"
+          for name in geoip.dat geosite.dat; do
+            curl -fsSL "$base/$name" -o "fetched-$name"
+            curl -fsSL "$base/$name.sha256sum" -o "fetched-$name.sha256sum"
+            sed -i "s#  .*#  fetched-$name#" "fetched-$name.sha256sum"
+            sha256sum -c "fetched-$name.sha256sum"
+          done
+
+      - name: clean up
+        if: always()
+        run: |
+          rm -rf cache dist fetched-*.dat fetched-*.sha256sum
+          find geoip/output geosite/output -type f ! -name .gitkeep -delete
+          echo "files git would still commit:"
+          git status --porcelain
