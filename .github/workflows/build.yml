@@ -77,6 +77,8 @@ jobs:
       # one alone, so an asset dropped from files: above would survive forever.
       # This leaves the release holding exactly the four files in dist.
       - name: drop any other asset
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           keep="geoip.dat geoip.dat.sha256sum geosite.dat geosite.dat.sha256sum"
