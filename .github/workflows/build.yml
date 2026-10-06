@@ -60,8 +60,9 @@ jobs:
           (cd geoip/output   && sha256sum -c geoip.dat.sha256sum)
           (cd geosite/output && sha256sum -c geosite.dat.sha256sum)
 
-      # Only the .dat files and their sums are released. The .txt lists stay in
-      # the repo and in output/ as build evidence; nothing reads them downstream.
+      # Only the .dat files and their sums are released. The .txt lists are build
+      # evidence for the run that produced them; they are never committed and no
+      # router reads them.
       - name: stage release assets
         run: |
           set -euo pipefail
