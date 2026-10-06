@@ -221,7 +221,12 @@ func entriesFromLists(lists map[string][]optRule) ([]*routercommon.GeoSite, erro
 			}
 			out = append(out, &routercommon.Domain{Type: t, Value: r.value})
 		}
-		entries = append(entries, &routercommon.GeoSite{CountryCode: name, Domain: out})
+		// Upstream writes codes upper case and Xray looks the tag up that way,
+		// so the output has to match. The lookup key stays lower case.
+		entries = append(entries, &routercommon.GeoSite{
+			CountryCode: strings.ToUpper(name),
+			Domain:      out,
+		})
 	}
 	return entries, nil
 }
