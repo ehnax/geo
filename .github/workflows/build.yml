@@ -111,14 +111,13 @@ jobs:
             sha256sum -c "fetched-$name.sha256sum"
           done
 
+      # The runner is discarded, so there is nothing here worth preserving. cache/ is
+      # the only eager delete: 32 MiB of downloads. output/ is left alone -- the
+      # builds create it with MkdirAll, .gitignore keeps it out of the tree, and a
+      # missing directory is no longer an error here.
       - name: clean up
         if: always()
         run: |
           rm -rf cache dist fetched-*.dat fetched-*.sha256sum
-          # The builds create these, so they are absent when a build failed. A
-          # failure here would mask the step that actually went wrong.
-          for d in geoip/output geosite/output; do
-            if [ -d "$d" ]; then find "$d" -type f ! -name .gitkeep -delete; fi
-          done
           echo "files git would still commit:"
           git status --porcelain
