@@ -32,13 +32,13 @@ const (
 	// other foreign ones -- without listing them. The Russian IDN TLDs are
 	// suffixes below, not this rule's job.
 	punycodeRe = `xn--[a-z0-9-]+\.[a-z0-9]+$`
-
-	// The one place the rule is interpreted. Every answer comes from here, so a
-	// domain can never be covered by one reading of the rule and not another.
-	punycodeRx = regexp.MustCompile(punycodeRe)
 )
 
 var (
+	// The one place the rule is interpreted. Every answer comes from here, so a
+	// domain can never be covered by one reading of the rule and not another.
+	punycodeRx = regexp.MustCompile(punycodeRe)
+
 	// Added to the Russian list, standing in for every rule ending in one. cn was
 	// removed: it covered a whole TLD for four rules' sake. The xn-- entries name
 	// the IDN TLDs upstream actually uses, so punycodeRe need not name them; every
