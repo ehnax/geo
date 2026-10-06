@@ -25,8 +25,18 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: true
 
+      # Names and diffs the offenders: `test -z "$(gofmt -l .)"` fails with only
+      # an exit code, which is no use when you cannot run gofmt locally.
       - name: gofmt
-        run: test -z "$(gofmt -l .)"
+        run: |
+          set -euo pipefail
+          unformatted="$(gofmt -l .)"
+          if [ -n "$unformatted" ]; then
+            echo "::error::needs gofmt:"
+            echo "$unformatted"
+            gofmt -d $unformatted
+            exit 1
+          fi
 
       - name: vet
         run: go vet ./...
