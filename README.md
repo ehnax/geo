@@ -74,6 +74,16 @@ form, and dropping them all would lose real routing, so a keyword is kept only i
 it replaces at least two rules, is on the forced list, and does not widen too far.
 Widening limits are a table in `geosite/scripts/optimize.go`.
 
+Cyrillic hosts arrive two ways. A punycode IDN TLD is named outright: `.рф`,
+`.рус`, `.москва`, `.онлайн`, `.сайт`, `.бел`, `.орг` and `.дети` are `domain:`
+suffixes, so everything under one is covered by name. A Cyrillic host under an
+ASCII TLD, `xn--90ab.com`, cannot be named that way, so one `regexp:` rule stands
+in for the whole shape — a punycode label in second to last position under an
+alphanumeric TLD. The trailing character class is what keeps foreign IDN TLDs
+out of `category-ru`: an ASCII TLD never carries a hyphen, so the class rejects
+every punycode TLD at once and none of them has to be listed to be excluded. The
+Russian ones are not caught by it either, and are not meant to be.
+
 Every accept or refusal is decided before anything is written and re-checked
 against the file that was written.
 
@@ -99,8 +109,9 @@ code, not by tests, so a local run gets the same protection as CI:
 `-geoip-url`, `-geosite-url`, `-zone-url`, `-dbip-url`.
 
 The first run downloads about 31 MiB into `-cache`; later runs are offline. There
-is no flag for the tag list or for PRIVATE — which tags ship and what PRIVATE
-contains are ports of the Python references and live in the code.
+is no flag for the tag list — which tags ship are ports of the Python references
+and live in the code. PRIVATE is the exception, being an ordinary editable file
+under `Design` above.
 
 ## Requirements
 
@@ -108,9 +119,9 @@ Go 1.22 or newer. Nothing else.
 
 ## Releases
 
-Every push to `main`, and every Monday at 03:17 UTC, runs the tests, builds, and
-updates the `latest` release. Weekly, because a monthly CSV lands on the 1st and a
-daily rebuild would only churn the release.
+Every push to `main`, and every Monday at 03:17 UTC, runs the build and updates
+the `latest` release. Weekly, because a monthly CSV lands on the 1st and a daily
+rebuild would only churn the release.
 
 ```
 https://github.com/ehnax/geo/releases/download/latest/geoip.dat
