@@ -26,15 +26,25 @@ const (
 	// Upper bound on how many more domains a keyword may route than it replaces.
 	maxWiden = 2.0
 
-	punycodeRe = "xn--[a-z0-9-]+"
+	// A punycode label in second to last position under a TLD that is letters and
+	// digits only. An ASCII TLD never carries a hyphen, so the trailing class
+	// drops every punycode TLD at once -- xn--fiqs8s, xn--3e0b707e and the
+	// other foreign ones -- without listing them. That also leaves the Russian
+	// IDN TLDs to the suffixes below rather than duplicating them here.
+	punycodeRe = `xn--[a-z0-9-]+\.[a-z0-9]+$`
 )
 
 var (
 	// Added to the Russian list, standing in for every rule ending in one. cn was
-	// removed: it covered a whole TLD for four rules' sake.
+	// removed: it covered a whole TLD for four rules' sake. The xn-- entries are
+	// the IDN TLDs the upstream Russian tags actually use, which is what lets
+	// punycodeRe stay narrow; every rule ending in one of them is dropped from
+	// the input and has to be covered again by one of these.
 	suffixes = []string{
-		"ru", "su", "xn--p1ai", "am", "az", "by", "ee", "ge",
+		"ru", "su", "am", "az", "by", "ee", "ge",
 		"kg", "kz", "md", "tj", "tm", "ua", "uz",
+		"xn--p1ai", "xn--p1acf", "xn--80adxhks", "xn--80asehdb",
+		"xn--80aswg", "xn--90ais", "xn--c1avg", "xn--d1acj3b",
 	}
 
 	// Dropped from the input before anything is counted.
@@ -273,7 +283,25 @@ func (idx *keptIndex) covers(value string) bool {
 
 	// Whether the regexp matches a given domain is not answerable here, so an
 	// arbitrary regexp only covers itself.
-	return idx.puny && strings.Contains(value, "xn--")
+	return idx.puny && matchesPunycodeRe(value)
+}
+
+// matchesPunycodeRe reports whether value matches punycodeRe: a punycode label
+// in second to last position, and a last label of letters and digits with no
+// hyphen. A punycode TLD is left to the suffix rules, which name them exactly.
+func matchesPunycodeRe(value string) bool {
+	dot := strings.LastIndexByte(value, '.')
+	if dot < 0 {
+		return false
+	}
+	for i := dot + 1; i < len(value); i++ {
+		if c := value[i]; (c < 'a' || c > 'z') && (c < '0' || c > '9') {
+			return false
+		}
+	}
+	head := value[:dot]
+	prev := head[strings.LastIndexByte(head, '.')+1:]
+	return len(prev) > 4 && strings.HasPrefix(prev, "xn--")
 }
 
 // covered is the readable definition of the same rule, kept as the oracle
@@ -294,7 +322,7 @@ func covered(prefix, value string, kept []optRule) bool {
 		if r.prefix == pKeyword && strings.Contains(value, r.value) {
 			return true
 		}
-		if r.prefix == pRegex && r.value == punycodeRe && strings.Contains(value, "xn--") {
+		if r.prefix == pRegex && r.value == punycodeRe && matchesPunycodeRe(value) {
 			return true
 		}
 	}
