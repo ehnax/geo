@@ -284,7 +284,7 @@ func (idx *keptIndex) covers(value string) bool {
 		return true
 	}
 
-// Whether the regexp matches a given domain is not answerable here, so an
+	// Whether the regexp matches a given domain is not answerable here, so an
 	// arbitrary regexp only covers itself.
 	return idx.puny && punycodeRx.MatchString(value)
 }
