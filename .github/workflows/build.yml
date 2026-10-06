@@ -105,6 +105,10 @@ jobs:
         if: always()
         run: |
           rm -rf cache dist fetched-*.dat fetched-*.sha256sum
-          find geoip/output geosite/output -type f ! -name .gitkeep -delete
+          # The builds create these, so they are absent when a build failed. A
+          # failure here would mask the step that actually went wrong.
+          for d in geoip/output geosite/output; do
+            if [ -d "$d" ]; then find "$d" -type f ! -name .gitkeep -delete; fi
+          done
           echo "files git would still commit:"
           git status --porcelain
